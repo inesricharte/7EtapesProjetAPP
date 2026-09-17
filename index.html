@@ -35,6 +35,15 @@
     .teaser .t{font-size:22px;}
   }
 
+  /* ---------- accueil ---------- */
+  #home .htitle{font-family:'Lilita One',sans-serif;font-size:40px;line-height:1.1;
+        color:var(--bordeaux);margin:2px 0 22px 0;text-wrap:pretty;}
+  #home .hlead{font-size:17px;line-height:1.65;color:var(--texte);margin:0 0 18px 0;text-wrap:pretty;}
+  #home .actions{margin-top:30px;}
+  #home .hnote{font-size:14px;line-height:1.55;color:var(--bordeaux2);background:var(--rosepale);
+        border:1px solid var(--rose);border-radius:14px;padding:13px 16px;margin:18px 0 0 0;text-wrap:pretty;}
+  @media (max-width:520px){ #home .htitle{font-size:32px;} #home .hlead{font-size:16px;} }
+
   /* ---------- progression ---------- */
   .progress{display:flex;gap:5px;margin:0 0 26px 0;}
   .progress i{flex:1;height:5px;background:var(--rose);border-radius:3px;transition:.35s cubic-bezier(.4,0,.2,1);}
@@ -219,8 +228,20 @@
 
   <div class="pad">
 
+    <!-- ACCUEIL -->
+    <div id="home">
+      <h1 class="htitle">Par où commencer ta cuisine ?</h1>
+      <p class="hlead">Tu as des dizaines d'images d'inspi, un budget en tête, et aucune idée de ce qu'il faut faire en premier. C'est normal : personne ne t'a expliqué dans quel ordre se prennent les décisions.</p>
+      <p class="hlead">Dans mon métier, un projet cuisine suit toujours le même ordre, et c'est ça qui fait qu'à la fin on obtient une cuisine au look sur mesure, qui ressemble à l'inspiration de départ. Réponds à 5 questions, je te dis par quoi commencer dans ton cas, et ce qui t'attend ensuite.</p>
+      <div class="actions">
+        <button class="btn hero" id="goStart">C'est parti (2 minutes)</button>
+      </div>
+      <p class="hnote" id="hnote" style="display:none">Tu es dans Instagram : pour télécharger ton PDF à la fin, ouvre cette page dans ton navigateur (« ⋯ » en haut à droite).</p>
+      <button class="lien" id="voirEtapes2">Je veux juste voir les 7 étapes →</button>
+    </div>
+
     <!-- QUESTIONNAIRE -->
-    <div id="quiz">
+    <div id="quiz" style="display:none">
       <div class="progress" id="prog"></div>
       <div class="qnum" id="qnum"></div>
       <div class="q" id="qtext"></div>
@@ -753,6 +774,7 @@ const TEXTES = {
 for (let n = 1; n <= 7; n++) TEXTES[n].n = ETAPES[n-1].exp;
 
 let idx = 0, rep = [];
+const IN_APP = /Instagram|FBAN|FBAV|Messenger|TikTok|Line\/|Pinterest|Snapchat/i.test(navigator.userAgent);
 
 // même bandeau titré en tête de chaque page du PDF
 (function(){
@@ -982,6 +1004,7 @@ function accordeon(zone){
 }
 
 function showSteps(){
+  $('home').style.display='none';
   $('quiz').style.display='none';
   $('result').style.display='none';
   $('steps').style.display='block';
@@ -998,13 +1021,23 @@ function showSteps(){
 }
 
 $('voirEtapes').onclick = showSteps;
+$('voirEtapes2').onclick = showSteps;
+if (IN_APP) $('hnote').style.display = 'block';
+$('goStart').onclick = ()=>{
+  $('home').style.display='none';
+  $('quiz').style.display='block';
+  renderQ();
+  window.scrollTo(0,0);
+};
 $('goQuiz').onclick = ()=>{
+  $('home').style.display='none';
   $('steps').style.display='none';
   $('quiz').style.display='block';
+  renderQ();
   window.scrollTo(0,0);
 };
 
-const CHARGE = ['On relit tes sept réponses…','On situe ton étape…','On prépare ta prochaine action…'];
+const CHARGE = ['On relit tes réponses…','On situe ton étape…','On prépare ta prochaine action…'];
 function runLoading(){
   $('quiz').style.display='none';
   $('steps').style.display='none';
@@ -1022,8 +1055,6 @@ $('next').onclick = ()=>{
 };
 $('back').onclick = ()=>{ if(idx>0){ idx--; renderQ(); } };
 $('again').onclick = ()=>{ idx=0; rep=[]; $('loading').style.display='none'; $('result').style.display='none'; $('steps').style.display='none'; $('quiz').style.display='block'; renderQ(); window.scrollTo(0,0); };
-
-const IN_APP = /Instagram|FBAN|FBAV|Messenger|TikTok|Line\/|Pinterest|Snapchat/i.test(navigator.userAgent);
 
 $('dl').onclick = async ()=>{
   const btn = $('dl'); const old = btn.textContent; const zone = $('dlzone');
@@ -1047,15 +1078,17 @@ $('dl').onclick = async ()=>{
       });
       const blob = pdf.output('blob');
       pdfUrl = URL.createObjectURL(blob);            // un vrai fichier : marche sur mobile
-      const a = document.createElement('a');
-      a.href = pdfUrl; a.download = 'mon-diagnostic-cuisine.pdf'; a.rel = 'noopener';
-      document.body.appendChild(a); a.click(); a.remove();
+      if (!IN_APP){                                   // dans Instagram, ouvrir le PDF vole la page
+        const a = document.createElement('a');
+        a.href = pdfUrl; a.download = 'mon-diagnostic-cuisine.pdf'; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+      }
     }catch(e){ console.warn('pdf direct KO', e); }
 
     zone.innerHTML =
       (pdfUrl && !IN_APP ? '<a class="btn pdf" id="openpdf" href="'+pdfUrl+'" target="_blank" rel="noopener" download="mon-diagnostic-cuisine.pdf">📄 Ouvrir mon PDF</a>' : '')
       + (IN_APP
-          ? '<p class="hint">Le PDF ne fonctionne pas depuis Instagram — ouvre la page dans ton navigateur, ou fais un appui long sur les images ci-dessous pour les enregistrer.</p>'
+          ? '<p class="hint">Le téléchargement du PDF ne fonctionne pas depuis Instagram. Fais un <b>appui long sur chaque page ci-dessous</b> pour l\'enregistrer dans tes photos — ou ouvre cette page dans ton navigateur pour récupérer le PDF.</p>'
           : '<p class="hint">Si le téléchargement ne démarre pas tout seul, utilise le bouton ci-dessus. Tu peux aussi faire un appui long sur les images pour les enregistrer.</p>')
       + imgs.map(i=>'<img class="preview" src="'+i+'" alt="Mon diagnostic">').join('');
   }catch(err){
@@ -1065,7 +1098,6 @@ $('dl').onclick = async ()=>{
   btn.textContent = old; btn.disabled = false;
 };
 
-renderQ();
 </script>
 </body>
 </html>
