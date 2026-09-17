@@ -155,6 +155,9 @@
   .actions{margin-top:30px;display:flex;gap:10px;flex-wrap:wrap;}
   .hint{font-size:14px;color:var(--muted);margin:16px 0 8px 0;}
   .hint a{color:var(--bordeaux);}
+  .btn.pdf{display:block;width:100%;text-align:center;text-decoration:none;margin:18px 0 6px 0;
+        background:var(--citron);color:var(--bordeaux);box-shadow:0 6px 18px rgba(226,219,52,.5);}
+  .btn.pdf:hover{background:#eee63e;}
   .preview{width:100%;border:1.5px solid var(--rose);border-radius:14px;display:block;margin-bottom:24px;}
   .preview:last-of-type{margin-bottom:10px;}
   .teaser{margin-top:38px;background:var(--bleu);border:1px solid #dde5ea;border-radius:22px;padding:26px 28px;}
@@ -1020,6 +1023,8 @@ $('next').onclick = ()=>{
 $('back').onclick = ()=>{ if(idx>0){ idx--; renderQ(); } };
 $('again').onclick = ()=>{ idx=0; rep=[]; $('loading').style.display='none'; $('result').style.display='none'; $('steps').style.display='none'; $('quiz').style.display='block'; renderQ(); window.scrollTo(0,0); };
 
+const IN_APP = /Instagram|FBAN|FBAV|Messenger|TikTok|Line\/|Pinterest|Snapchat/i.test(navigator.userAgent);
+
 $('dl').onclick = async ()=>{
   const btn = $('dl'); const old = btn.textContent; const zone = $('dlzone');
   btn.textContent = 'Préparation…'; btn.disabled = true; zone.innerHTML = '';
@@ -1032,7 +1037,7 @@ $('dl').onclick = async ()=>{
       imgs.push(c.toDataURL('image/jpeg', 0.92));
     }
 
-    let pdfUri = null;
+    let pdfUrl = null;
     try{
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF('p','mm','a4');
@@ -1040,19 +1045,19 @@ $('dl').onclick = async ()=>{
         if (i) pdf.addPage();
         pdf.addImage(img, 'JPEG', 0, 0, 210, 297);   // les feuilles sont déjà au ratio A4
       });
-      pdfUri = pdf.output('datauristring');
+      const blob = pdf.output('blob');
+      pdfUrl = URL.createObjectURL(blob);            // un vrai fichier : marche sur mobile
       const a = document.createElement('a');
-      a.href = pdfUri; a.download = 'mon-diagnostic-cuisine.pdf';
+      a.href = pdfUrl; a.download = 'mon-diagnostic-cuisine.pdf'; a.rel = 'noopener';
       document.body.appendChild(a); a.click(); a.remove();
     }catch(e){ console.warn('pdf direct KO', e); }
 
     zone.innerHTML =
-      '<p class="hint">Si le téléchargement ne démarre pas tout seul : appui long (ou clic droit) sur les images pour les enregistrer'
-      + (pdfUri ? ', <a id="openpdf" href="#">ou ouvre le PDF ici</a>.' : '.')
-      + '</p>' + imgs.map(i=>'<img class="preview" src="'+i+'" alt="Mon diagnostic">').join('');
-    if (pdfUri){
-      $('openpdf').onclick = (ev)=>{ ev.preventDefault(); const w2 = window.open(); if(w2){ w2.document.write('<iframe src="'+pdfUri+'" style="border:0;width:100%;height:100%"></iframe>'); } };
-    }
+      (pdfUrl && !IN_APP ? '<a class="btn pdf" id="openpdf" href="'+pdfUrl+'" target="_blank" rel="noopener" download="mon-diagnostic-cuisine.pdf">📄 Ouvrir mon PDF</a>' : '')
+      + (IN_APP
+          ? '<p class="hint">Le PDF ne fonctionne pas depuis Instagram — ouvre la page dans ton navigateur, ou fais un appui long sur les images ci-dessous pour les enregistrer.</p>'
+          : '<p class="hint">Si le téléchargement ne démarre pas tout seul, utilise le bouton ci-dessus. Tu peux aussi faire un appui long sur les images pour les enregistrer.</p>')
+      + imgs.map(i=>'<img class="preview" src="'+i+'" alt="Mon diagnostic">').join('');
   }catch(err){
     console.error(err);
     zone.innerHTML = '<p class="hint">Erreur : ' + (err && err.message ? err.message : err) + '</p>';
